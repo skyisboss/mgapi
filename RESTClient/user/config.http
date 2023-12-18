@@ -1,0 +1,6 @@
+POST http://localhost:3000/api/user/config 
+Content-Type: application/json
+
+{
+    "openid": 5279874291
+}

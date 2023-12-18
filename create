@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+
+# 获取第一个参数
+input_string=$1
+
+# 将首字母转为大写
+first_char=$(echo "$input_string" | cut -c1 | tr 'a-z' 'A-Z')
+# 获取字符串剩余部分
+rest_of_string=$(echo "$input_string" | cut -c2-)
+
+
+#创建module
+nest g module app/$1
+
+#创建控制器
+nest g controller app/$1 --no-spec
+
+#创建服务层
+nest g service app/$1 --no-spec
+
+tableName=$first_char$rest_of_string
+entityFile=./src/app/$1/$1.entity.ts
+dtoFile=./src/app/$1/$1.dto.ts
+
+cat >$entityFile<<EOF # 开始
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+} from 'typeorm';
+
+@Entity()
+export class T`echo ${tableName}` {
+    @PrimaryGeneratedColumn()
+    id: number;
+
+    @CreateDateColumn({ type: 'timestamp' })
+    created_at: Date;
+
+    @CreateDateColumn({ type: 'timestamp' })
+    updated_at: Date;
+}
+EOF
+
+cat >$dtoFile<<EOF # 开始
+import { Transform } from 'class-transformer';
+import { IsNotEmpty, IsIn, IsInt, Length } from 'class-validator';
+import { IntersectionType } from '@nestjs/swagger';
+
+export class OpenidDto {
+  @IsNotEmpty({ message: 'openid不能为空' })
+  openid: string;
+}
+EOF

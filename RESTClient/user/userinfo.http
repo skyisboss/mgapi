@@ -1,0 +1,7 @@
+POST http://localhost:3000/api/user/index 
+Content-Type: application/json
+
+{
+    "uid": 5279874291,
+    "nickname": "fox"
+}
