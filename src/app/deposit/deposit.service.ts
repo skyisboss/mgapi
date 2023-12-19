@@ -10,22 +10,22 @@ export class DepositService {
   constructor(@InjectRepository(TDeposit) private readonly depositRepository: Repository<TDeposit>) {}
 
   /**查看记录 */
-  async history(data: HistoryDto) {
+  async history(dto: HistoryDto) {
+    // 定义范围和分页选项
     const pageSize = 5
-    const skip = (data.page - 1) * pageSize
-
-    const [res, total] = await Promise.all([
-      this.depositRepository.find({
-        skip,
-        take: pageSize,
-        where: {
-          openid: data.openid,
-        },
-      }),
-      this.depositRepository.count({ where: { openid: data.openid } }),
-    ])
+    const paginationOptions = {
+      page: dto.page,
+      pageSize: pageSize,
+    }
+    const [res, total] = await this.depositRepository.findAndCount({
+      where: {
+        openid: dto.openid,
+      },
+      skip: (paginationOptions.page - 1) * paginationOptions.pageSize,
+      take: paginationOptions.pageSize,
+    })
     if (res === null) {
-      return null
+      throw new Error('数据不存在')
     }
 
     return {
@@ -35,7 +35,7 @@ export class DepositService {
       }),
       total: total,
       size: pageSize,
-      page: data.page,
+      page: dto.page,
     }
   }
 

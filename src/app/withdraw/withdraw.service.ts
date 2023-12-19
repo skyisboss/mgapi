@@ -23,23 +23,40 @@ export class WithdrawService {
   }
 
   /**查看记录 */
-  async history(data: HistoryDto) {
+  async history(dto: HistoryDto) {
+    // 定义范围和分页选项
     const pageSize = 5
-    const skip = (data.page - 1) * pageSize
-
-    const [res, total] = await Promise.all([
-      this.withdrawRepository.find({
-        skip,
-        take: pageSize,
-        where: {
-          openid: data.openid,
-        },
-      }),
-      this.withdrawRepository.count({ where: { openid: data.openid } }),
-    ])
-    if (res === null) {
-      return null
+    const paginationOptions = {
+      page: dto.page,
+      pageSize: pageSize,
     }
+    const [res, total] = await this.withdrawRepository.findAndCount({
+      where: {
+        openid: dto.openid,
+      },
+      skip: (paginationOptions.page - 1) * paginationOptions.pageSize,
+      take: paginationOptions.pageSize,
+    })
+    if (res === null) {
+      throw new Error('数据不存在')
+    }
+
+    // const pageSize = 5
+    // const skip = (data.page - 1) * pageSize
+
+    // const [res, total] = await Promise.all([
+    //   this.withdrawRepository.find({
+    //     skip,
+    //     take: pageSize,
+    //     where: {
+    //       openid: data.openid,
+    //     },
+    //   }),
+    //   this.withdrawRepository.count({ where: { openid: data.openid } }),
+    // ])
+    // if (res === null) {
+    //   return null
+    // }
 
     return {
       rows: res.map(x => {
@@ -48,7 +65,7 @@ export class WithdrawService {
       }),
       total: total,
       size: pageSize,
-      page: data.page,
+      page: dto.page,
     }
   }
 

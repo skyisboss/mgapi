@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { TTransfer } from './transfer.entity'
-import { Repository } from 'typeorm'
+import { In, Repository, SelectQueryBuilder } from 'typeorm'
 import { InjectRepository } from '@nestjs/typeorm'
 import { HistoryDetailDto, HistoryDto } from '../wallet/wallet.dto'
 import { WeiToEth } from 'src/util/helper'
@@ -10,22 +10,29 @@ export class TransferService {
   constructor(@InjectRepository(TTransfer) private readonly transferRepository: Repository<TTransfer>) {}
 
   /**查看记录 */
-  async history(data: HistoryDto) {
+  async history(dto: HistoryDto) {
+    // 定义范围和分页选项
     const pageSize = 5
-    const skip = (data.page - 1) * pageSize
+    const paginationOptions = {
+      page: dto.page,
+      pageSize: pageSize,
+    }
 
-    const [res, total] = await Promise.all([
-      this.transferRepository.find({
-        skip,
-        take: pageSize,
-        where: {
-          from_user: data.openid,
+    // 使用 Between 条件和分页选项进行查询
+    const [res, total] = await this.transferRepository.findAndCount({
+      where: [
+        {
+          to_user: dto.openid,
         },
-      }),
-      this.transferRepository.count({ where: { from_user: data.openid } }),
-    ])
+        {
+          from_user: In([dto.openid, 'system-invite']),
+        },
+      ],
+      skip: (paginationOptions.page - 1) * paginationOptions.pageSize,
+      take: paginationOptions.pageSize,
+    })
     if (res === null) {
-      return null
+      throw new Error('数据不存在')
     }
 
     return {
@@ -35,7 +42,7 @@ export class TransferService {
       }),
       total: total,
       size: pageSize,
-      page: data.page,
+      page: dto.page,
     }
   }
 

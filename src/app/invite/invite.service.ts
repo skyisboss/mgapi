@@ -5,16 +5,16 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { subDays, startOfToday, endOfToday } from 'date-fns'
 import { inviteUsersDto } from './invite.dto'
 import { OpenidDto } from '../wallet/wallet.dto'
-import { TUser } from '../user/user.entity'
 import { TBalance } from '../balance/balance.entity'
-import { EthToWei } from 'src/util/helper'
+import { WeiToEth } from 'src/util/helper'
 import { math_add } from 'src/util/math'
+import { TDeposit } from '../deposit/deposit.entity'
+import { TTransfer } from '../transfer/transfer.entity'
 
 @Injectable()
 export class InviteService {
   constructor(
     @InjectRepository(TInvite) private readonly inviteRepository: Repository<TInvite>,
-    @InjectRepository(TUser) private readonly userRepository: Repository<TUser>,
     @InjectRepository(TBalance) private readonly balanceRepository: Repository<TBalance>,
   ) {}
 
@@ -36,9 +36,9 @@ export class InviteService {
         count: count,
       },
       balance: {
-        trc20: EthToWei(trc20, 6),
-        bep20: EthToWei(bep20, 6),
-        erc20: EthToWei(erc20, 6),
+        trc20: WeiToEth(trc20, 6),
+        bep20: WeiToEth(bep20, 6),
+        erc20: WeiToEth(erc20, 6),
       },
     }
   }
@@ -99,7 +99,7 @@ export class InviteService {
 
     await this.balanceRepository.manager.transaction(async manager => {
       try {
-        // 扣减 invite 余额
+        // 1、扣减 invite 余额
         const res1 = await manager.update(
           TBalance,
           { id: invite.id, version: invite.version },
@@ -110,7 +110,11 @@ export class InviteService {
             version: invite.version + 1,
           },
         )
-        // 增加 wallet 余额
+        if (res1.affected === 0) {
+          throw new Error('提取失败 - 1')
+        }
+
+        // 2、增加 wallet 余额
         const res2 = await manager.update(
           TBalance,
           { id: wallet.id, version: wallet.version },
@@ -121,11 +125,36 @@ export class InviteService {
             version: wallet.version + 1,
           },
         )
-        if (res1.affected + res1.affected != 2) {
-          throw new Error('提取失败 - 1')
+        if (res2.affected === 0) {
+          throw new Error('提取失败 - 2')
+        }
+
+        // 3、添加到转账记录表
+        const obj = [
+          { token: 'trc20', amount: invite.trc20 },
+          { token: 'bep20', amount: invite.bep20 },
+          { token: 'erc20', amount: invite.erc20 },
+        ]
+        const logs: TTransfer[] = []
+        obj.map(x => {
+          if (x.amount > 0) {
+            const log = new TTransfer()
+            log.from_user = 'system-invite'
+            log.to_user = dto.openid
+            log.amount = x.amount
+            log.token = x.token
+            log.status = 1
+            log.created_at = new Date()
+            logs.push(log)
+          }
+        })
+        const res3 = await manager.save(TTransfer, logs)
+
+        if (res3.length === 0) {
+          throw new Error('提取失败 - 3')
         }
       } catch (error) {
-        throw new Error('提取失败 - 2')
+        throw new Error('提取失败 - 4')
       }
     })
 

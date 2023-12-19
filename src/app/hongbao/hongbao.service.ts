@@ -21,17 +21,22 @@ export class HongbaoService {
   ) {}
 
   /**查看记录 */
-  async history(data: HistoryDto) {
+  async history(dto: HistoryDto) {
+    // 定义范围和分页选项
     const pageSize = 5
-    const skip = (data.page - 1) * pageSize
-
-    const [res, total] = await Promise.all([
-      this.hongbaoRepository.find({ skip, take: pageSize, where: { openid: data.openid } }),
-      this.hongbaoRepository.count({ where: { openid: data.openid } }),
-    ])
-
+    const paginationOptions = {
+      page: dto.page,
+      pageSize: pageSize,
+    }
+    const [res, total] = await this.hongbaoRepository.findAndCount({
+      where: {
+        openid: dto.openid,
+      },
+      skip: (paginationOptions.page - 1) * paginationOptions.pageSize,
+      take: paginationOptions.pageSize,
+    })
     if (res === null) {
-      return null
+      throw new Error('数据不存在')
     }
 
     return {
@@ -42,7 +47,7 @@ export class HongbaoService {
       }),
       total: total,
       size: pageSize,
-      page: data.page,
+      page: dto.page,
     }
   }
 
