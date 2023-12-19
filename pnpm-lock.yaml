@@ -32,6 +32,9 @@ dependencies:
   crypto:
     specifier: ^1.0.1
     version: 1.0.1
+  date-fns:
+    specifier: ^3.0.0
+    version: 3.0.0
   mathjs:
     specifier: ^12.1.0
     version: 12.1.0
@@ -2338,6 +2341,10 @@ packages:
     engines: {node: '>=0.11'}
     dependencies:
       '@babel/runtime': 7.23.5
+    dev: false
+
+  /date-fns@3.0.0:
+    resolution: {integrity: sha512-xjDz3rNN9jp+Lh3P/4MeY4E5HkaRnEnrJCcrdRZnKdn42gJlIe6hwrrwVXePRwVR2kh1UcMnz00erYBnHF8PFA==}
     dev: false
 
   /debug@2.6.9:

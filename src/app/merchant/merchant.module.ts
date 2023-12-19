@@ -9,9 +9,10 @@ import { TUser } from '../user/user.entity'
 import { TBalance } from '../balance/balance.entity'
 import { TMerchantLog } from '../merchant_log/merchant_log.entity'
 import { TAddress } from '../address/address.entity'
+import { TInvite } from '../invite/invite.entity'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([TMerchant, TUser, TBalance, TMerchantLog, TAddress])],
+  imports: [TypeOrmModule.forFeature([TMerchant, TUser, TBalance, TMerchantLog, TAddress, TInvite])],
   controllers: [MerchantController],
   providers: [MerchantService, UserService, BalanceService],
 })

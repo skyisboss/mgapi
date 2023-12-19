@@ -1,11 +1,15 @@
 import { Transform } from 'class-transformer'
-import { IsNotEmpty, IsIn, IsInt, Length } from 'class-validator'
+import { IsNotEmpty, IsIn, IsInt, Length, IsOptional } from 'class-validator'
 import { IntersectionType } from '@nestjs/swagger'
 import { OpenidDto } from '../wallet/wallet.dto'
 
 export class RegisterDto extends IntersectionType(OpenidDto) {
   @IsNotEmpty({ message: 'nickname 不能为空' })
   nickname: string
+
+  @IsOptional()
+  @IsNotEmpty({ message: 'invite_code 不能为空' })
+  invite_code?: string
 }
 
 export class TransferDto extends IntersectionType(OpenidDto) {
@@ -27,7 +31,7 @@ export class CurrencyDto extends IntersectionType(OpenidDto) {
 
 export class PinCodeDto extends IntersectionType(OpenidDto) {
   @IsNotEmpty({ message: 'pin_code 不能为空' })
-  @Length(6, 6, { message: 'pin_code 错误' })
+  @Length(4, 4, { message: 'pin_code 错误' })
   pin_code: string
 }
 

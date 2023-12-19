@@ -14,6 +14,7 @@ import { ContractModule } from './app/contract/contract.module';
 import { GoodsModule } from './app/goods/goods.module';
 import { VendingModule } from './app/vending/vending.module';
 import { ClaimsModule } from './app/claims/claims.module';
+import { InviteModule } from './app/invite/invite.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { ClaimsModule } from './app/claims/claims.module';
     GoodsModule,
     VendingModule,
     ClaimsModule,
+    InviteModule,
   ],
   controllers: [],
   providers: [],

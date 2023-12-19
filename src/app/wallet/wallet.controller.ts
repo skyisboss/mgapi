@@ -3,7 +3,7 @@ import { BalanceService } from 'src/app/balance/balance.service'
 // import { DepositDto } from 'src/app/user/user.dto'
 import { UserService } from 'src/app/user/user.service'
 import { WalletService } from './wallet.service'
-import { HttpResponse } from 'src/util/helper'
+import { HttpResponse, WeiToEth } from 'src/util/helper'
 import { DepositDto, HistoryDetailDto, HistoryDto, OpenidDto, TransferDto, WithdrawDto } from './wallet.dto'
 import { HongbaoService } from '../hongbao/hongbao.service'
 import { WithdrawService } from '../withdraw/withdraw.service'
@@ -60,7 +60,7 @@ export class WalletController {
       rows: any[]
       total: number
       size: number
-      page: number
+      page: number | string
     }
     switch (items[body.view]) {
       case 'deposit':
@@ -96,6 +96,9 @@ export class WalletController {
       case 'hongbao':
         res = await this.hongbaoService.detail(body)
         break
+    }
+    if (res?.amount) {
+      res.amount = WeiToEth(res.amount, 6)
     }
     return res ? HttpResponse.success(res) : HttpResponse.error()
   }

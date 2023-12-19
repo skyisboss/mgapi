@@ -17,9 +17,12 @@ import { WithdrawService } from '../withdraw/withdraw.service'
 import { TDeposit } from '../deposit/deposit.entity'
 import { DepositService } from '../deposit/deposit.service'
 import { TClaims } from '../claims/claims.entity'
+import { TInvite } from '../invite/invite.entity'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([TUser, TBalance, TAddress, TWithdraw, TTransfer, THongbao, TDeposit, TClaims])],
+  imports: [
+    TypeOrmModule.forFeature([TUser, TBalance, TAddress, TWithdraw, TTransfer, THongbao, TDeposit, TClaims, TInvite]),
+  ],
   controllers: [WalletController],
   providers: [
     WalletService,

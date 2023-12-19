@@ -7,13 +7,15 @@ import { TBalance } from 'src/app/balance/balance.entity'
 import { OpenidDto } from '../wallet/wallet.dto'
 import { RegisterDto } from './user.dto'
 import { TAddress } from '../address/address.entity'
+import { TInvite } from '../invite/invite.entity'
 
 @Injectable()
 export class UserService {
   constructor(
-    @InjectRepository(TUser) private readonly user: Repository<TUser>,
-    @InjectRepository(TBalance) private readonly balance: Repository<TBalance>,
+    @InjectRepository(TUser) private readonly userRepository: Repository<TUser>,
+    @InjectRepository(TBalance) private readonly balanceRepository: Repository<TBalance>,
     @InjectRepository(TAddress) private readonly addressRepository: Repository<TAddress>,
+    @InjectRepository(TInvite) private readonly inviteRepository: Repository<TInvite>,
   ) {}
 
   /**
@@ -21,7 +23,7 @@ export class UserService {
    * @returns
    */
   async userinfo(dto: OpenidDto) {
-    const res = await this.user.findOneBy({ openid: dto.openid })
+    const res = await this.userRepository.findOneBy({ openid: dto.openid })
     return res
   }
 
@@ -33,7 +35,27 @@ export class UserService {
    * @returns
    */
   async register(dto: RegisterDto) {
-    await this.user.manager.connection.transaction(async manager => {
+    const { invite_code } = dto
+    let inviteNew: TInvite = null
+    if (invite_code) {
+      // 根据所属邀请码的用户信息
+      const inviteOwner = await this.userRepository.findOneBy({ invite_code })
+      // 用户信息查询邀请表
+      const inviteParent = await this.inviteRepository.findOneBy({ openid: inviteOwner.openid })
+      inviteNew = new TInvite()
+      inviteNew['lavel'] = 1
+      inviteNew['parent'] = inviteOwner.openid
+      inviteNew['openid'] = dto.openid
+      inviteNew['created_at'] = new Date()
+      // 根据parent判断用户的上级，默认层级=1
+      if (inviteParent !== null) {
+        // 获取上级代理的层级，累计+1即等于当前用户所处层级。
+        // 这里的层级累计方便后台统计用户推广来源。但是佣金最多允许3层代理，所以具体的层级佣金在代理里实现。
+        inviteNew['lavel'] = inviteParent.lavel + 1
+      }
+    }
+
+    await this.userRepository.manager.connection.transaction(async manager => {
       try {
         //1、创建用户
         const user = new TUser()
@@ -51,10 +73,18 @@ export class UserService {
           throw new Error('创建用户失败 - 1')
         }
 
+        // TODO::处理通过邀请链接注册的用户
+        if (dto.invite_code && inviteNew !== null) {
+          const resNew = await manager.save(TInvite, inviteNew)
+          if (resNew === null) {
+            throw new Error('创建用户失败 - 2')
+          }
+        }
+
         //2、创建钱包
         const balances: TBalance[] = []
         // 批量创建
-        ;['wallet', 'invate'].map(async x => {
+        ;['wallet', 'invite'].map(async x => {
           const data = new TBalance()
           data.uid = res.id
           data.openid = dto.openid
@@ -63,7 +93,7 @@ export class UserService {
         })
         const res1 = await manager.save(TBalance, balances)
         if (res1 === null) {
-          throw new Error('创建用户失败 - 2')
+          throw new Error('创建用户失败 - 3')
         }
 
         // 3、分配地址
@@ -77,10 +107,10 @@ export class UserService {
 
         const res2 = await manager.save(TAddress, data)
         if (res2 === null) {
-          throw new Error('创建用户失败 - 3')
+          throw new Error('创建用户失败 - 4')
         }
       } catch (error) {
-        throw new Error('创建用户失败 - 4')
+        throw new Error('创建用户失败 - 5')
       }
     })
 
@@ -92,7 +122,7 @@ export class UserService {
    * @returns
    */
   async checkUser(openid: string, showEmptyError?: boolean) {
-    const res = await this.user.findOneBy({ openid: openid })
+    const res = await this.userRepository.findOneBy({ openid: openid })
     if (showEmptyError && res === null) {
       throw new Error('用户不存在')
     }
@@ -109,18 +139,18 @@ export class UserService {
     remove?: boolean
   }) {
     const { openid } = opt
-    const data = await this.user.findOneBy({ openid: openid })
+    const data = await this.userRepository.findOneBy({ openid: openid })
     if (opt?.lang_code) {
       data.language = opt.lang_code
-      return await this.user.save(data)
+      return await this.userRepository.save(data)
     }
     if (opt?.currency) {
       data.currency = opt.currency
-      return await this.user.save(data)
+      return await this.userRepository.save(data)
     }
     if (opt?.pin_code) {
       data.pin_code = md5(data.openid + opt.pin_code + data.invite_code)
-      return await this.user.save(data)
+      return await this.userRepository.save(data)
     }
     // 备份账户
     if (opt?.account) {
@@ -135,18 +165,18 @@ export class UserService {
           return [null, '无法与你的账户解绑']
         }
         // 执行解绑操作
-        await this.user.update({ id: userinfo.id }, { backup_account: '' })
+        await this.userRepository.update({ id: userinfo.id }, { backup_account: '' })
         data.backup_account = ''
-        return [await this.user.save(data), '']
+        return [await this.userRepository.save(data), '']
       } else {
         // 已经绑定过
         if (userinfo.backup_account) {
           return [null, '已经绑定过']
         }
         // 开始绑定
-        await this.user.update({ id: userinfo.id }, { backup_account: data.openid })
+        await this.userRepository.update({ id: userinfo.id }, { backup_account: data.openid })
         data.backup_account = opt.account
-        return [await this.user.save(data), '']
+        return [await this.userRepository.save(data), '']
       }
     }
   }
@@ -154,7 +184,7 @@ export class UserService {
   /**申请转移资产 */
   async assetsTransfer(opt: { openid: string; account: string }) {
     const { openid, account } = opt
-    const data = await this.user.findOne({
+    const data = await this.userRepository.findOne({
       where: {
         openid: openid,
         backup_account: account,
@@ -168,12 +198,18 @@ export class UserService {
   }
 
   /**邀请统计 */
-  async inviteDetail(opt: OpenidDto) {
-    const userinfo = await this.user.findOneBy({ openid: opt.openid })
-    const balance = await this.balance.findOneBy({
-      uid: userinfo.id,
-      account: 'invite',
-    })
+  async inviteDetail(dto: OpenidDto) {
+    const [userinfo, balance] = await Promise.all([
+      this.userinfo({ openid: dto.openid }),
+      this.balanceRepository.findOneBy({
+        openid: dto.openid,
+        account: 'invite',
+      }),
+    ])
+
+    if (userinfo === null || balance === null) {
+      throw new Error('用户不存在')
+    }
     const { trc20, bep20, erc20 } = balance
     return {
       invites: {
@@ -189,8 +225,8 @@ export class UserService {
 
   /**提取佣金 */
   async inviteWithdraw(opt: OpenidDto) {
-    const userinfo = await this.user.findOneBy({ openid: opt.openid })
-    const balance = await this.balance.findOneBy({
+    const userinfo = await this.userRepository.findOneBy({ openid: opt.openid })
+    const balance = await this.balanceRepository.findOneBy({
       uid: userinfo.id,
       account: 'invite',
     })

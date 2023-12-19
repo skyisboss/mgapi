@@ -13,11 +13,11 @@ export class UserController {
   ) {}
 
   @Post('/config')
-  async config(@Body() body): Promise<any> {
+  async config(@Body() body: OpenidDto): Promise<any> {
     const data = {
       bot_link: 'https://t.me/beikeBot',
       language: [
-        { code: 'en', lang: 'English' },
+        // { code: 'en', lang: 'English' },
         { code: 'cn', lang: '简体中文' },
       ],
       blockchain: [
@@ -25,16 +25,19 @@ export class UserController {
           chain: 'tron',
           token: 'trc20',
           symbol: 'usdt',
+          decimal: 6,
         },
         {
           chain: 'bsc',
           token: 'bep20',
           symbol: 'usdt',
+          decimal: 6,
         },
         {
           chain: 'eth',
           token: 'erc20',
           symbol: 'usdt',
+          decimal: 6,
         },
       ],
       currency: [
@@ -53,7 +56,7 @@ export class UserController {
   async userinfo(@Body() body: OpenidDto): Promise<any> {
     const res = await this.userService.userinfo(body)
     if (res === null) {
-      return HttpResponse.error({}, { err: 405 })
+      return HttpResponse.error({}, { err: 404 })
     }
     return HttpResponse.success(res)
   }

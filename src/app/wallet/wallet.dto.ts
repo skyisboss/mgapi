@@ -31,15 +31,32 @@ export class OpenidDto {
 }
 
 export class IdDto {
+  @Transform(({ value }) => {
+    try {
+      return Number(value)
+    } catch (error) {
+      return value
+    }
+  })
   @IsNotEmpty({ message: 'id 不能为空' })
-  @IsInt({ message: 'id 无效' })
+  // @Matches(/^[1-9]+$/, { message: 'id 无效' })
+  // @IsInt({ message: 'id 无效' })
   @IsPositive({ message: 'id 无效' })
   id: number
 }
 
 export class PageDto {
+  @Transform(({ value }) => {
+    try {
+      return Number(value)
+    } catch (error) {
+      return value
+    }
+  })
   @IsNotEmpty({ message: 'page 不能为空' })
-  @IsInt({ message: 'page 错误' })
+  // @Matches(/^[1-9]+$/, { message: 'page 无效' })
+  @IsInt({ message: 'page 无效' })
+  @IsPositive({ message: 'page 无效' })
   page: number
 }
 
@@ -109,14 +126,10 @@ export class TransferDto extends IntersectionType(OpenidDto, TokenDto, AmountDto
   touser: string
 }
 
-export class HistoryDto extends IntersectionType(OpenidDto) {
+export class HistoryDto extends IntersectionType(OpenidDto, PageDto) {
   @IsNotEmpty({ message: 'view 不能为空' })
   @IsInt({ message: 'view 错误' })
   view: number
-
-  @IsNotEmpty({ message: 'page 不能为空' })
-  @IsInt({ message: 'page 错误' })
-  page: number
 }
 
 export class HistoryDetailDto extends IntersectionType(OpenidDto) {

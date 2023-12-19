@@ -6,9 +6,10 @@ import { TUser } from './user.entity'
 import { BalanceService } from 'src/app/balance/balance.service'
 import { TBalance } from 'src/app/balance/balance.entity'
 import { TAddress } from '../address/address.entity'
+import { TInvite } from '../invite/invite.entity'
 
 @Module({
-  imports: [TypeOrmModule.forFeature([TUser, TBalance, TAddress])],
+  imports: [TypeOrmModule.forFeature([TUser, TBalance, TAddress, TInvite])],
   controllers: [UserController],
   providers: [UserService, BalanceService],
 })

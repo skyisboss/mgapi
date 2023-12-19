@@ -48,10 +48,7 @@ export class HongbaoService {
 
   async detail(dto: HistoryDetailDto) {
     const res = await this.hongbaoRepository.findOneBy({ id: dto.id })
-    console.log(res.amount)
-    res.amount = WeiToEth(res.amount, 6)
     res.available_balance = JSON.parse(res.available_balance)
-    // res.token = res.token.toUpperCase()
     return res
   }
 
